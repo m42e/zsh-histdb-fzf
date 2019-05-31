@@ -17,7 +17,6 @@ Activation
 To enable the widget add the following binding to you zshrc
 
 ```zsh
-zle     -N   histdb-fzf-widget
 bindkey '^R' histdb-fzf-widget
 ```
 
