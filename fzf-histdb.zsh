@@ -149,3 +149,4 @@ ${bold_color}F1: session F2: directory F3: global$reset_color' -n2.. --with-nth=
   
   return $ret
 }
+zle     -N   histdb-fzf-widget
