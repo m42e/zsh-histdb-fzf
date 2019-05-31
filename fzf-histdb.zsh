@@ -109,7 +109,6 @@ histdb-fzf-widget() {
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
   query=${(qqq)LBUFFER}
   modes=('session' 'loc' 'global')
-	echo ${HISTDB_SESSION}xx
   if [[ -z ${HISTDB_SESSION} ]];then
     mode=2
   else
