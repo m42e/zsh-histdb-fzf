@@ -150,8 +150,3 @@ ${bold_color}F1: session F2: directory F3: global$reset_color' -n2.. --with-nth=
   
   return $ret
 }
-
-if typeset -f _histdb_init > /dev/null; then
-  zle     -N   histdb-fzf-widget
-  bindkey '^R' histdb-fzf-widget
-fi
