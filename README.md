@@ -20,3 +20,7 @@ To enable the widget add the following binding to you zshrc
 bindkey '^R' histdb-fzf-widget
 ```
 
+Logging
+-------
+
+If a filename is set to `HISTDB_FZF_LOGFILE` some debug information will be appended to that file.

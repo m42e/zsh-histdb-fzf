@@ -104,21 +104,34 @@ histdb-detail(){
   printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand:\n\n\t\033[1m%s\n\033[0m" $array
 }
 
+histdb-fzf-log() {
+  if [[ ! -z ${HISTDB_FZF_LOGFILE} ]]; then
+    if [[ ! -f ${HISTDB_FZF_LOGFILE} ]]; then
+      touch ${HISTDB_FZF_LOGFILE}
+    fi
+    echo $* >> ${HISTDB_FZF_LOGFILE}
+  fi
+}
+
 histdb-fzf-widget() {
   local selected num mode exitkey typ cmd_opts
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
   query=${(qqq)LBUFFER}
+  histdb-fzf-log "original query $query"
   modes=('session' 'loc' 'global')
   if [[ -z ${HISTDB_SESSION} ]];then
     mode=2
   else
     mode=1
   fi
+  histdb-fzf-log "Start mode ${modes[$mode]} ($mode)"
   exitkey='ctrl-r'
   setopt localoptions noglobsubst noposixbuiltins pipefail 2> /dev/null
   while [[ "$exitkey" != "" ]]; do
+    histdb-fzf-log "Exitkey $exitkey"
     if [[ $exitkey =~ "f." ]]; then
       mode=${exitkey[$(($MBEGIN+1)),$MEND]}
+      histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
     fi
     case "$modes[$mode]" in 
       'session')
@@ -135,15 +148,22 @@ histdb-fzf-widget() {
         ;;
     esac
     mode=$((($mode % $#modes) + 1))
+    histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
     result=( "${(f@)$( histdb-fzf-query ${cmd_opts} |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
 ${bold_color}F1: session F2: directory F3: global$reset_color' -n2.. --with-nth=2.. --tiebreak=index --expect='ctrl-r,f1,f2,f3' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m" $(__fzfcmd))}" )
+    histdb-fzf-log "result was $result"
     query=$result[1]
     exitkey=${result[2]}
-    fzf_selected=(${=result[3]})
-    selected="${(@)fzf_selected:2}"
+		fzf_selected=(${(@z)result[3]})
+    histdb-fzf-log "Query was      $query"
+    histdb-fzf-log "Exitkey was    $query"
+    histdb-fzf-log "fzf_selected = $fzf_selected $#fzf_selected"
+    selected="${fzf_selected[@]:2}"
+    histdb-fzf-log "selected = $selected"
   done
   LBUFFER=$selected
+  histdb-fzf-log "set lbuffer = $LBUFFER"
   zle redisplay
   typeset -f zle-line-init >/dev/null && zle zle-line-init
   
