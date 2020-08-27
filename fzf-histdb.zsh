@@ -64,7 +64,7 @@ group by history.command_id, history.place_id
 order by max_start desc)
 order by max_start desc"
 
-  histdb-fzf-log "query for log $query"
+  histdb-fzf-log "query for log '$query'\n-----"
 
   # use tab as separator
   _histdb_query -separator '  ' "$query" 
@@ -177,11 +177,6 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
     query=$result[1]
     exitkey=${result[2]}
     fzf_selected="${(j: :)${(@z)result[3]}[@]:2}"
-    histdb-fzf-log "fzf_selected_test = ${(@z)result[3]}"
-    histdb-fzf-log "fzf_selected_test = ${(@)result[3]}"
-    histdb-fzf-log "fzf_selected_test = ${(qqqq)result[3]}"
-    histdb-fzf-log "fzf_selected_test = ${result[3]}"
-    histdb-fzf-log "fzf_selected_test = ${fzf_selected_test}"
     histdb-fzf-log "Query was      $query"
     histdb-fzf-log "Exitkey was    $query"
     histdb-fzf-log "fzf_selected = $fzf_selected $#fzf_selected"
