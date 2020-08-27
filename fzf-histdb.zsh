@@ -124,9 +124,10 @@ histdb-detail(){
 histdb-fzf-widget() {
   local selected num mode exitkey typ cmd_opts
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
-  query=${(qqq)LBUFFER}
-  origquery=${LBUFFER}
+  query=${(qqq)BUFFER}
+  origquery=${BUFFER}
   histdb-fzf-log "================== START ==================="
+  histdb-fzf-log "original buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "original query $query"
   modes=('session' 'loc' 'global')
   if [[ -z ${HISTDB_SESSION} ]];then
@@ -185,15 +186,13 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
 
   done
   if [[ "$exitkey" == "esc" ]]; then
-    LBUFFER=$origquery
+    BUFFER=$origquery
   else
-    LBUFFER=$selected
+    BUFFER=$selected
   fi
-  histdb-fzf-log "set lbuffer = $LBUFFER"
+  CURSOR=$#BUFFER
+  zle -R -c
+  histdb-fzf-log "new buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "=================== DONE ==================="
-  zle redisplay
-  typeset -f zle-line-init >/dev/null && zle zle-line-init
-  
-  return $ret
 }
 zle     -N   histdb-fzf-widget
