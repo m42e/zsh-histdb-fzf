@@ -1,7 +1,16 @@
 FZF_HISTDB_FILE="${(%):-%N}"
 
-HISTDB_FZF_LOGFILE=~/fzfhistlog
 autoload -U colors && colors
+
+histdb-fzf-log() {
+  if [[ ! -z ${HISTDB_FZF_LOGFILE} ]]; then
+    if [[ ! -f ${HISTDB_FZF_LOGFILE} ]]; then
+      touch ${HISTDB_FZF_LOGFILE}
+    fi
+    echo $* >> ${HISTDB_FZF_LOGFILE}
+  fi
+}
+
 histdb-fzf-query(){
   _histdb_init
   local -a opts
@@ -32,13 +41,15 @@ histdb-fzf-query(){
 
   local mst="datetime(max_start, 'unixepoch')"
   local dst="datetime('now', 'start of day')"
-  local timecol="strftime(case when $mst > $dst then '%H:%M' else '%d/%m' end, max_start, 'unixepoch', 'localtime') as time"
+  local yst="datetime('now', 'start of year')"
+  local timecol="strftime(case when $mst > $dst then '%H:%M' else (case when $mst > $yst then '%d/%m' else '%d/%m/%Y' end) end, max_start, 'unixepoch', 'localtime') as time"
 
   local query="
 select 
 id, 
 ${timecol}, 
-CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || argv as cmd, 
+CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || replace(argv, '
+', ' ') as cmd, 
 CASE exit_status WHEN 0 THEN '' ELSE '${reset_color}' END 
 from 
 (select 
@@ -51,6 +62,8 @@ ${where:+where ${where}}
 group by history.command_id, history.place_id
 order by max_start desc)
 order by max_start desc"
+
+  histdb-fzf-log "query for log $query"
 
   _histdb_query -separator '  ' "$query" 
 }
@@ -105,15 +118,6 @@ histdb-detail(){
   printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand:\n\n\t\033[1m%s\n\033[0m" $array
 }
 
-histdb-fzf-log() {
-  if [[ ! -z ${HISTDB_FZF_LOGFILE} ]]; then
-    if [[ ! -f ${HISTDB_FZF_LOGFILE} ]]; then
-      touch ${HISTDB_FZF_LOGFILE}
-    fi
-    echo $* >> ${HISTDB_FZF_LOGFILE}
-  fi
-}
-
 histdb-fzf-widget() {
   local selected num mode exitkey typ cmd_opts
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
@@ -151,9 +155,12 @@ histdb-fzf-widget() {
     esac
     mode=$((($mode % $#modes) + 1))
     histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
+
+    histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
+${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m"
     result=( "${(f@)$( histdb-fzf-query ${cmd_opts} |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m" $(__fzfcmd))}" )
+${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m" $(__fzfcmd))}" )
     histdb-fzf-log "result was $result"
     histdb-fzf-log "returncode was $?"
     query=$result[1]
