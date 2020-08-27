@@ -12,6 +12,7 @@ histdb-fzf-log() {
 }
 
 histdb-fzf-query(){
+  # A wrapper for histb-query with fzf specific options and query
   _histdb_init
   local -a opts
 
@@ -65,6 +66,7 @@ order by max_start desc"
 
   histdb-fzf-log "query for log $query"
 
+  # use tab as separator
   _histdb_query -separator '  ' "$query" 
 }
 
@@ -104,6 +106,7 @@ histdb-detail(){
   array=("${(@f)$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" -separator "
 " "$query" )}")
 
+  # Add some color
   if [[ ! ${array[2]} ]];then
     #Color exitcode red if not 0
     array[2]=$(echo "\033[31m${array[2]}\033[0m")
@@ -123,6 +126,7 @@ histdb-fzf-widget() {
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
   query=${(qqq)LBUFFER}
   origquery=${LBUFFER}
+  histdb-fzf-log "================== START ==================="
   histdb-fzf-log "original query $query"
   modes=('session' 'loc' 'global')
   if [[ -z ${HISTDB_SESSION} ]];then
@@ -133,12 +137,17 @@ histdb-fzf-widget() {
   histdb-fzf-log "Start mode ${modes[$mode]} ($mode)"
   exitkey='ctrl-r'
   setopt localoptions noglobsubst noposixbuiltins pipefail 2> /dev/null
+  # Here it is getting a bit tricky, fzf does not support dynamic updating so we have to close and reopen fzf when changing the focus (session, dir, global)
+  # so we check the exitkey and decide what to do
   while [[ "$exitkey" != "" && "$exitkey" != "esc" ]]; do
+    histdb-fzf-log "------------------- TURN -------------------"
     histdb-fzf-log "Exitkey $exitkey"
+    # the f keys are a shortcut to select a certain mode
     if [[ $exitkey =~ "f." ]]; then
       mode=${exitkey[$(($MBEGIN+1)),$MEND]}
       histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
     fi
+    # based on the mode, we use the options for histdb options
     case "$modes[$mode]" in 
       'session')
         cmd_opts="-s"
@@ -156,11 +165,13 @@ histdb-fzf-widget() {
     mode=$((($mode % $#modes) + 1))
     histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
 
+    # log the FZF arguments
     histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
 ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m"
     result=( "${(f@)$( histdb-fzf-query ${cmd_opts} |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
 ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m" $(__fzfcmd))}" )
+    # here we got a result from fzf, containing all the information, now we must handle it, split it and use the correct elements
     histdb-fzf-log "result was $result"
     histdb-fzf-log "returncode was $?"
     query=$result[1]
@@ -176,6 +187,7 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
     histdb-fzf-log "fzf_selected = $fzf_selected $#fzf_selected"
     selected="${fzf_selected}"
     histdb-fzf-log "selected = $selected"
+
   done
   if [[ "$exitkey" == "esc" ]]; then
     LBUFFER=$origquery
@@ -183,6 +195,7 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
     LBUFFER=$selected
   fi
   histdb-fzf-log "set lbuffer = $LBUFFER"
+  histdb-fzf-log "=================== DONE ==================="
   zle redisplay
   typeset -f zle-line-init >/dev/null && zle zle-line-init
   
