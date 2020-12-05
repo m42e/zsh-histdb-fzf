@@ -191,7 +191,7 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
     BUFFER=$selected
   fi
   CURSOR=$#BUFFER
-  zle -R -c
+  zle reset-prompt
   histdb-fzf-log "new buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "=================== DONE ==================="
 }
