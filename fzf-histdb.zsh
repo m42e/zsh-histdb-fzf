@@ -11,6 +11,11 @@ histdb-fzf-log() {
   fi
 }
 
+__myfzfcmd() {
+  [ -n "$TMUX_PANE" ] && { [ "${FZF_TMUX:-0}" != 0 ] || [ -n "$FZF_TMUX_OPTS" ]; } &&
+    echo "fzf-tmux" || echo "fzf"
+}
+
 histdb-fzf-query(){
   # A wrapper for histb-query with fzf specific options and query
   _histdb_init
@@ -64,7 +69,7 @@ group by history.command_id, history.place_id
 order by max_start desc)
 order by max_start desc"
 
-  histdb-fzf-log "query for log '$query'\n-----"
+  histdb-fzf-log "query for log '${(Q)query}'\n-----"
 
   # use tab as separator
   _histdb_query -separator '  ' "$query" 
@@ -124,7 +129,7 @@ histdb-detail(){
 histdb-fzf-widget() {
   local selected num mode exitkey typ cmd_opts
   ORIG_FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
-  query=${(qqq)BUFFER}
+  query=${BUFFER}
   origquery=${BUFFER}
   histdb-fzf-log "================== START ==================="
   histdb-fzf-log "original buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
@@ -153,14 +158,17 @@ histdb-fzf-widget() {
       'session')
         cmd_opts="-s"
         typ="Session local history ${fg[blue]}${HISTDB_SESSION}${reset_color}"
+        switchhints="${fg_bold[blue]}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color}"
         ;;
       'loc')
         cmd_opts="-d"
         typ="Directory local history ${fg[blue]}$(pwd)${reset_color}"
+        switchhints="${bold_color}F1: session${reset_color} ${fg_bold[blue]}F2: directory${reset_color} ${bold_color}F3: global${reset_color}"
         ;;
       'global')
         cmd_opts=""
         typ='global history'
+        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg_bold[blue]}F3: global${reset_color}"
         ;;
     esac
     mode=$((($mode % $#modes) + 1))
@@ -168,10 +176,10 @@ histdb-fzf-widget() {
 
     # log the FZF arguments
     histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m"
+${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m"
     result=( "${(f@)$( histdb-fzf-query ${cmd_opts} |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query=${query} +m" $(__fzfcmd))}" )
+$switchhints' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m" $(__myfzfcmd))}" )
     # here we got a result from fzf, containing all the information, now we must handle it, split it and use the correct elements
     histdb-fzf-log "result was $result"
     histdb-fzf-log "returncode was $?"
@@ -196,3 +204,4 @@ ${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nt
   histdb-fzf-log "=================== DONE ==================="
 }
 zle     -N   histdb-fzf-widget
+bindkey '^R' histdb-fzf-widget
