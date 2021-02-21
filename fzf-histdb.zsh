@@ -134,13 +134,13 @@ histdb-fzf-widget() {
   histdb-fzf-log "================== START ==================="
   histdb-fzf-log "original buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "original query $query"
-  modes=('session' 'loc' 'global')
+  histdb_fzf_modes=('session' 'loc' 'global')
   if [[ -z ${HISTDB_SESSION} ]];then
     mode=2
   else
     mode=1
   fi
-  histdb-fzf-log "Start mode ${modes[$mode]} ($mode)"
+  histdb-fzf-log "Start mode ${histdb_fzf_modes[$mode]} ($mode)"
   exitkey='ctrl-r'
   setopt localoptions noglobsubst noposixbuiltins pipefail 2> /dev/null
   # Here it is getting a bit tricky, fzf does not support dynamic updating so we have to close and reopen fzf when changing the focus (session, dir, global)
@@ -151,10 +151,10 @@ histdb-fzf-widget() {
     # the f keys are a shortcut to select a certain mode
     if [[ $exitkey =~ "f." ]]; then
       mode=${exitkey[$(($MBEGIN+1)),$MEND]}
-      histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
+      histdb-fzf-log "mode changed to ${histdb_fzf_modes[$mode]} ($mode)"
     fi
     # based on the mode, we use the options for histdb options
-    case "$modes[$mode]" in 
+    case "$histdb_fzf_modes[$mode]" in 
       'session')
         cmd_opts="-s"
         typ="Session local history ${fg[blue]}${HISTDB_SESSION}${reset_color}"
@@ -168,11 +168,11 @@ histdb-fzf-widget() {
       'global')
         cmd_opts=""
         typ='global history'
-        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg_bold[blue]}F3: global${reset_color}"
+        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg[blue]}F3: global${reset_color}"
         ;;
     esac
-    mode=$((($mode % $#modes) + 1))
-    histdb-fzf-log "mode changed to ${modes[$mode]} ($mode)"
+    mode=$((($mode % $#histdb_fzf_modes) + 1))
+    histdb-fzf-log "mode changed to ${histdb_fzf_modes[$mode]} ($mode)"
 
     # log the FZF arguments
     histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
