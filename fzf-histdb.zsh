@@ -135,7 +135,10 @@ histdb-fzf-widget() {
   histdb-fzf-log "original buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "original query $query"
   histdb_fzf_modes=('session' 'loc' 'global')
-  if [[ -z ${HISTDB_SESSION} ]];then
+
+  if [[ -n ${HISTDB_FZF_DEFAULT_MODE} ]]; then
+    mode=${HISTDB_SESSION}
+  elif [[ -z ${HISTDB_SESSION} ]];then
     mode=2
   else
     mode=1
