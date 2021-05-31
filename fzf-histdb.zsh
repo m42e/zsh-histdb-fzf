@@ -202,7 +202,7 @@ $switchhints' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f
     BUFFER=$selected
   fi
   CURSOR=$#BUFFER
-  zle reset-prompt
+  zle redisplay
   histdb-fzf-log "new buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "=================== DONE ==================="
 }
