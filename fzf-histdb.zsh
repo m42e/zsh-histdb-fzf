@@ -100,8 +100,8 @@ histdb-detail(){
   local query="
     select 
       strftime('%d/%m/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time, 
-      exit_status, 
-      secs, 
+      ifnull(exit_status, 'NONE') as exit_status, 
+      ifnull(secs, '-----') as secs, 
       host, 
       dir, 
       session, 
@@ -119,22 +119,27 @@ histdb-detail(){
   array_str=("${$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" -separator " " "$query" )}")
   array=(${(@s: :)array_str})
 
+  histdb-fzf-log "DETAIL: ${array_str}"
+
   # Add some color
-  if [[ ! ${array[2]} ]];then
+  if [[ "${array[2]}" == "NONE" ]];then
+    #Color exitcode red if not 0
+    array[2]=$(echo "\033[35m${array[2]}\033[0m")
+  elif [[ ! ${array[2]} ]];then
     #Color exitcode red if not 0
     array[2]=$(echo "\033[31m${array[2]}\033[0m")
   fi
-  if [[ ${array[3]} -gt 300 ]];then
+  if [[ "${array[3]}" == "-----" ]];then
+    #Color exitcode red if not 0
+    array[3]=$(echo "\033[35m${array[3]}\033[0m")
+  elif [[ "${array[3]}" -gt 300 ]];then
     # Duration red if > 5 min
     array[3]=$(echo "\033[31m${array[3]}\033[0m")
-  elif [[ ${array[3]} -gt 60 ]];then
+  elif [[ "${array[3]}" -gt 60 ]];then
     # Duration yellow if > 1 min
     array[3]=$(echo "\033[33m${array[3]}\033[0m")
   fi
   
-  histdb-fzf-log "+++ *** DETAIL *** +++"
-  histdb-fzf-log ${array[4]}
-  histdb-fzf-log "--- *** DETAIL *** ---"
   printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand id: %s\nCommand:\n\n" ${array[0]}  ${array[1]}  ${array[2]}  ${array[3]} ${array[4]} ${array[5]} ${array[6]} ${array[7]}
   echo "${array[8,-1]}"
 }
