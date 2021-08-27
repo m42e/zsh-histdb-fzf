@@ -1,5 +1,11 @@
 FZF_HISTDB_FILE="${(%):-%N}"
 
+if [ ${IS_OSX} -eq 1 ]; then
+  datecmd='gdate'
+else
+  datecmd='gdate'
+fi
+
 autoload -U colors && colors
 
 histdb-fzf-log() {
@@ -7,12 +13,12 @@ histdb-fzf-log() {
     if [[ ! -f ${HISTDB_FZF_LOGFILE} ]]; then
       touch ${HISTDB_FZF_LOGFILE}
     fi
-    echo $* >> ${HISTDB_FZF_LOGFILE}
+    echo $(${datecmd} +'%s.%N') $* >> ${HISTDB_FZF_LOGFILE}
   fi
 }
 
 __myfzfcmd() {
-  [ -n "$TMUX_PANE" ] && { [ "${FZF_TMUX:-0}" != 0 ] || [ -n "$FZF_TMUX_OPTS" ]; } &&
+  [ -n "$TMUX_PANE" ] && ( [ "${FZF_TMUX:-0}" != 0 ] || [ -n "$FZF_TMUX_OPTS" ]; ) &&
     echo "fzf-tmux" || echo "fzf"
 }
 
@@ -71,8 +77,9 @@ order by max_start desc"
 
   histdb-fzf-log "query for log '${(Q)query}'\n-----"
 
-  # use tab as separator
-  _histdb_query -separator '  ' "$query" 
+  # use Figure Space U+2007 as separator
+  _histdb_query -separator ' ' "$query" 
+  histdb-fzf-log "\n----\nquery completed"
 }
 
 histdb-detail(){
@@ -98,6 +105,7 @@ histdb-detail(){
       host, 
       dir, 
       session, 
+      id,
       argv as cmd 
     from 
       (select ${cols}
@@ -108,8 +116,8 @@ histdb-detail(){
       where ${where})
   "
 
-  array=("${(@f)$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" -separator "
-" "$query" )}")
+  array_str=("${$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" -separator " " "$query" )}")
+  array=(${(@s: :)array_str})
 
   # Add some color
   if [[ ! ${array[2]} ]];then
@@ -123,7 +131,28 @@ histdb-detail(){
     # Duration yellow if > 1 min
     array[3]=$(echo "\033[33m${array[3]}\033[0m")
   fi
-  printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand:\n\n\t\033[1m%s\n\033[0m" $array
+  
+  histdb-fzf-log "+++ *** DETAIL *** +++"
+  histdb-fzf-log ${array[4]}
+  histdb-fzf-log "--- *** DETAIL *** ---"
+  printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand id: %s\nCommand:\n\n" ${array[0]}  ${array[1]}  ${array[2]}  ${array[3]} ${array[4]} ${array[5]} ${array[6]} ${array[7]}
+  echo "${array[8,-1]}"
+}
+
+histdb-get-command(){
+  HISTDB_FILE=$1
+  CMD_ID=$2
+
+  local query="
+    select 
+      argv as cmd 
+    from
+      history
+      left join commands on history.command_id = commands.id
+    where 
+      history.id='${CMD_ID}'
+  "
+  printf "$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" "$query")"
 }
 
 histdb-fzf-widget() {
@@ -179,26 +208,31 @@ histdb-fzf-widget() {
 
     # log the FZF arguments
     histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-${bold_color}F1: session F2: directory F3: global${reset_color}' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m"
-    result=( "${(f@)$( histdb-fzf-query ${cmd_opts} |
-      FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-$switchhints' -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m" $(__myfzfcmd))}" )
+${bold_color}F1: session F2: directory F3: global${reset_color}' --delimiter=\x1f -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m"
+    fzfcmd=$(__myfzfcmd)
+    result=( "${(@f)$( histdb-fzf-query ${cmd_opts} |
+      FZF_DEFAULT_OPTS="$ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
+$switchhints' --delimiter=" " -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m" fzf)}" )
     # here we got a result from fzf, containing all the information, now we must handle it, split it and use the correct elements
-    histdb-fzf-log "result was $result"
+    histdb-fzf-log "result was -${(@)result}-"
+
+    histdb-fzf-log "length was ${#result[@]}"
     histdb-fzf-log "returncode was $?"
     query=$result[1]
     exitkey=${result[2]}
-    fzf_selected="${(j: :)${(@z)result[3]}[@]:2}"
+    fzf_selected="${(@s: :)result[3]}"
+    fzf_selected="${${(@s: :)result[3]}[1]}"
     histdb-fzf-log "Query was      $query"
-    histdb-fzf-log "Exitkey was    $query"
-    histdb-fzf-log "fzf_selected = $fzf_selected $#fzf_selected"
-    selected="${fzf_selected}"
-    histdb-fzf-log "selected = $selected"
+    histdb-fzf-log "Exitkey was    $exitkey"
+    histdb-fzf-log "fzf_selected = $fzf_selected"
 
   done
   if [[ "$exitkey" == "esc" ]]; then
     BUFFER=$origquery
   else
+    selected=$(histdb-get-command ${HISTDB_FILE} ${fzf_selected})
+    histdb-fzf-log "histdb-get-command ${HISTDB_FILE} ${fzf_selected}"
+    histdb-fzf-log "selected = $selected"
     BUFFER=$selected
   fi
   CURSOR=$#BUFFER
