@@ -1,4 +1,5 @@
 FZF_HISTDB_FILE="${(%):-%N}"
+HISTDB_FZF_CMD=${HISTDB_FZF_COMMAND:-fzf}
 
 # use gdate if available (will provide nanoseconds on mac)
 if command -v gdate >> /dev/null; then
@@ -23,7 +24,6 @@ histdb-fzf-log() {
   fi
 }
 
-HISTDB_FZF_CMD=${HISTDB_FZF_COMMAND:-fzf}
 
 histdb-fzf-query(){
   # A wrapper for histb-query with fzf specific options and query
@@ -137,14 +137,14 @@ histdb-detail(){
 
   # Add some color
   if [[ "${array[2]}" == "NONE" ]];then
-    #Color exitcode red if not 0
+    #Color exitcode magento if not available
     array[2]=$(echo "\033[35m${array[2]}\033[0m")
   elif [[ ! ${array[2]} ]];then
     #Color exitcode red if not 0
     array[2]=$(echo "\033[31m${array[2]}\033[0m")
   fi
   if [[ "${array[3]}" == "-----" ]];then
-    #Color exitcode red if not 0
+    #Color duration magento if not available
     array[3]=$(echo "\033[35m${array[3]}\033[0m")
   elif [[ "${array[3]}" -gt 300 ]];then
     # Duration red if > 5 min
