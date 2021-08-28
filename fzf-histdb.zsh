@@ -57,32 +57,43 @@ histdb-fzf-query(){
   local mst="datetime(max_start, 'unixepoch')"
   local dst="datetime('now', 'start of day')"
   local yst="datetime('now', 'start of year')"
-  local timecol="strftime(case when $mst > $dst then '%H:%M' else (case when $mst > $yst then '%d/%m' else '%d/%m/%Y' end) end, max_start, 'unixepoch', 'localtime') as time"
+  local timecol="strftime(
+                   case when $mst > $dst then 
+                      '%H:%M' 
+                   else (
+                     case when $mst > $yst then 
+                       '%d/%m' 
+                     else 
+                       '%d/%m/%Y' 
+                     end) 
+                   end, 
+                   max_start, 
+                   'unixepoch', 
+                   'localtime') as time"
 
   local query="
-select 
-id, 
-${timecol}, 
-CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || replace(argv, '
-', ' ') as cmd, 
-CASE exit_status WHEN 0 THEN '' ELSE '${reset_color}' END 
-from 
-(select 
-  ${cols}
-from
-  history
-  left join commands on history.command_id = commands.id
-  left join places on history.place_id = places.id
-${where:+where ${where}}
-group by history.command_id, history.place_id
-order by max_start desc)
-order by max_start desc"
+      select 
+      id, 
+      ${timecol}, 
+      CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || replace(argv, '$NL', ' ') as cmd, 
+      CASE exit_status WHEN 0 THEN '' ELSE '${reset_color}' END 
+      from 
+      (select 
+        ${cols}
+      from
+        history
+        left join commands on history.command_id = commands.id
+        left join places on history.place_id = places.id
+      ${where:+where ${where}}
+      group by history.command_id, history.place_id
+      order by max_start desc)
+      order by max_start desc"
 
-  histdb-fzf-log "query for log '${(Q)query}'\n-----"
+  histdb-fzf-log "query for log '${(Q)query}'"
 
   # use Figure Space U+2007 as separator
   _histdb_query -separator ' ' "$query" 
-  histdb-fzf-log "\n----\nquery completed"
+  histdb-fzf-log "query completed"
 }
 
 histdb-detail(){
@@ -236,24 +247,21 @@ histdb-fzf-widget() {
     result=( "${(@f)$( histdb-fzf-query ${cmd_opts} |
       FZF_DEFAULT_OPTS="${OPTIONS}" ${HISTDB_FZF_CMD})}" )
     # here we got a result from fzf, containing all the information, now we must handle it, split it and use the correct elements
-    histdb-fzf-log "result was -${(@)result}-"
-
-    histdb-fzf-log "length was ${#result[@]}"
     histdb-fzf-log "returncode was $?"
     query=$result[1]
     exitkey=${result[2]}
     fzf_selected="${(@s: :)result[3]}"
     fzf_selected="${${(@s: :)result[3]}[1]}"
-    histdb-fzf-log "Query was      $query"
-    histdb-fzf-log "Exitkey was    $exitkey"
+    histdb-fzf-log "Query was      ${query:-<nothing>}"
+    histdb-fzf-log "Exitkey was    ${exitkey:-<NONE>}"
     histdb-fzf-log "fzf_selected = $fzf_selected"
 
   done
   if [[ "$exitkey" == "esc" ]]; then
     BUFFER=$origquery
   else
-    selected=$(histdb-get-command ${HISTDB_FILE} ${fzf_selected})
     histdb-fzf-log "histdb-get-command ${HISTDB_FILE} ${fzf_selected}"
+    selected=$(histdb-get-command ${HISTDB_FILE} ${fzf_selected})
     histdb-fzf-log "selected = $selected"
     BUFFER=$selected
   fi
