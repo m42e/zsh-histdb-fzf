@@ -1,10 +1,16 @@
 FZF_HISTDB_FILE="${(%):-%N}"
 
-if [ ${IS_OSX} -eq 1 ]; then
+# use gdate if available (will provide nanoseconds on mac)
+if command -v gdate >> /dev/null; then
   datecmd='gdate'
 else
-  datecmd='gdate'
+  datecmd='date'
 fi
+
+# variables for substitution in log
+NL="
+"
+NLT=$(printf "\n\t\t")
 
 autoload -U colors && colors
 
@@ -13,14 +19,11 @@ histdb-fzf-log() {
     if [[ ! -f ${HISTDB_FZF_LOGFILE} ]]; then
       touch ${HISTDB_FZF_LOGFILE}
     fi
-    echo $(${datecmd} +'%s.%N') $* >> ${HISTDB_FZF_LOGFILE}
+    printf "%s %s\n" $(${datecmd} +'%s.%N') ${*//$NL/$NLT} >> ${HISTDB_FZF_LOGFILE}
   fi
 }
 
-__myfzfcmd() {
-  [ -n "$TMUX_PANE" ] && ( [ "${FZF_TMUX:-0}" != 0 ] || [ -n "$FZF_TMUX_OPTS" ]; ) &&
-    echo "fzf-tmux" || echo "fzf"
-}
+HISTDB_FZF_CMD=${HISTDB_FZF_COMMAND:-fzf}
 
 histdb-fzf-query(){
   # A wrapper for histb-query with fzf specific options and query
@@ -212,12 +215,21 @@ histdb-fzf-widget() {
     histdb-fzf-log "mode changed to ${histdb_fzf_modes[$mode]} ($mode)"
 
     # log the FZF arguments
-    histdb-fzf-log "--height ${FZF_TMUX_HEIGHT:-40%} $ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-${bold_color}F1: session F2: directory F3: global${reset_color}' --delimiter=\x1f -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m"
-    fzfcmd=$(__myfzfcmd)
+    OPTIONS="$ORIG_FZF_DEFAULT_OPTS 
+      --ansi 
+      --header='${typ}${NL}${switchhints}${NL}―――――――――――――――――――――――――' --delimiter=' '
+      -n2.. --with-nth=2.. 
+      --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3'
+      --bind 'ctrl-d:page-down,ctrl-u:page-up' 
+      --print-query 
+      --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap 
+      --no-hscroll 
+      --query='${query}' +m"
+
+    histdb-fzf-log "$OPTIONS"
+
     result=( "${(@f)$( histdb-fzf-query ${cmd_opts} |
-      FZF_DEFAULT_OPTS="$ORIG_FZF_DEFAULT_OPTS --ansi --header='$typ 
-$switchhints' --delimiter=" " -n2.. --with-nth=2.. --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3' --bind 'ctrl-d:page-down,ctrl-u:page-up' --print-query --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap --ansi --no-hscroll --query='${query}' +m" fzf)}" )
+      FZF_DEFAULT_OPTS="${OPTIONS}" ${HISTDB_FZF_CMD})}" )
     # here we got a result from fzf, containing all the information, now we must handle it, split it and use the correct elements
     histdb-fzf-log "result was -${(@)result}-"
 
