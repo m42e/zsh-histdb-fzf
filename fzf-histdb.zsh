@@ -105,8 +105,8 @@ histdb-detail(){
       strftime('%d/%m/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time, 
       ifnull(exit_status, 'NONE') as exit_status, 
       ifnull(secs, '-----') as secs, 
-      host, 
-      dir, 
+      ifnull(host, '<somewhere>') as host, 
+      ifnull(dir, '<somedir>') as dir,
       session, 
       id,
       argv as cmd 
@@ -171,7 +171,7 @@ histdb-fzf-widget() {
   histdb-fzf-log "================== START ==================="
   histdb-fzf-log "original buffers: -:$BUFFER l:$LBUFFER r:$RBUFFER"
   histdb-fzf-log "original query $query"
-  histdb_fzf_modes=('session' 'loc' 'global')
+  histdb_fzf_modes=('session' 'loc' 'global' 'everywhere')
 
   if [[ -n ${HISTDB_FZF_DEFAULT_MODE} ]]; then
     mode=${HISTDB_SESSION}
@@ -198,17 +198,22 @@ histdb-fzf-widget() {
       'session')
         cmd_opts="-s"
         typ="Session local history ${fg[blue]}${HISTDB_SESSION}${reset_color}"
-        switchhints="${fg_bold[blue]}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color}"
+        switchhints="${fg_bold[blue]}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
         ;;
       'loc')
         cmd_opts="-d"
         typ="Directory local history ${fg[blue]}$(pwd)${reset_color}"
-        switchhints="${bold_color}F1: session${reset_color} ${fg_bold[blue]}F2: directory${reset_color} ${bold_color}F3: global${reset_color}"
+        switchhints="${bold_color}F1: session${reset_color} ${fg_bold[blue]}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
         ;;
       'global')
         cmd_opts=""
         typ='global history'
-        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg[blue]}F3: global${reset_color}"
+        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg[blue]}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
+        ;;
+      'everywhere')
+        cmd_opts="-t"
+        typ='everywhere'
+        switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${fg[blue]}F4: everywhere${reset_color}"
         ;;
     esac
     mode=$((($mode % $#histdb_fzf_modes) + 1))
