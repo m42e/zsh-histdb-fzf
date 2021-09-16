@@ -209,16 +209,16 @@ histdb-fzf-widget() {
       'session')
         cmd_opts="-s"
         typ="Session local history ${fg[blue]}${HISTDB_SESSION}${reset_color}"
-        switchhints="${fg_bold[blue]}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
+        switchhints="${fg[blue]}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
         ;;
       'loc')
         cmd_opts="-d"
         typ="Directory local history ${fg[blue]}$(pwd)${reset_color}"
-        switchhints="${bold_color}F1: session${reset_color} ${fg_bold[blue]}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
+        switchhints="${bold_color}F1: session${reset_color} ${fg[blue]}F2: directory${reset_color} ${bold_color}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
         ;;
       'global')
         cmd_opts=""
-        typ='global history'
+        typ="global history ${fg[blue]}$(hostname)${reset_color}"
         switchhints="${bold_color}F1: session${reset_color} ${bold_color}F2: directory${reset_color} ${fg[blue]}F3: global${reset_color} ${bold_color}F4: everywhere${reset_color}"
         ;;
       'everywhere')
