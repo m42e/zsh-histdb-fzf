@@ -185,7 +185,7 @@ histdb-fzf-widget() {
   histdb_fzf_modes=('session' 'loc' 'global' 'everywhere')
 
   if [[ -n ${HISTDB_FZF_DEFAULT_MODE} ]]; then
-    mode=${HISTDB_SESSION}
+    mode=${HISTDB_FZF_DEFAULT_MODE}
   elif [[ -z ${HISTDB_SESSION} ]];then
     mode=2
   else
@@ -235,7 +235,7 @@ histdb-fzf-widget() {
       --ansi 
       --header='${typ}${NL}${switchhints}${NL}―――――――――――――――――――――――――' --delimiter=' '
       -n2.. --with-nth=2.. 
-      --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3'
+      --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3,f4'
       --bind 'ctrl-d:page-down,ctrl-u:page-up' 
       --print-query 
       --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap 
