@@ -58,27 +58,27 @@ histdb-fzf-query(){
   local dst="datetime('now', 'start of day')"
   local yst="datetime('now', 'start of year')"
   local timecol="strftime(
-                   case when $mst > $dst then 
-                      '%H:%M' 
+                   case when $mst > $dst then
+                      '%H:%M'
                    else (
-                     case when $mst > $yst then 
-                       '%d/%m' 
-                     else 
-                       '%d/%m/%Y' 
-                     end) 
-                   end, 
-                   max_start, 
-                   'unixepoch', 
+                     case when $mst > $yst then
+                       '%d/%m'
+                     else
+                       '%d/%m/%Y'
+                     end)
+                   end,
+                   max_start,
+                   'unixepoch',
                    'localtime') as time"
 
   local query="
-      select 
-      id, 
-      ${timecol}, 
-      CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || replace(argv, '$NL', ' ') as cmd, 
-      CASE exit_status WHEN 0 THEN '' ELSE '${reset_color}' END 
-      from 
-      (select 
+      select
+      id,
+      ${timecol},
+      CASE exit_status WHEN 0 THEN '' ELSE '${fg[red]}' END || replace(argv, '$NL', ' ') as cmd,
+      CASE exit_status WHEN 0 THEN '' ELSE '${reset_color}' END
+      from
+      (select
         ${cols}
       from
         history
@@ -92,7 +92,7 @@ histdb-fzf-query(){
   histdb-fzf-log "query for log '${(Q)query}'"
 
   # use Figure Space U+2007 as separator
-  _histdb_query -separator ' ' "$query" 
+  _histdb_query -separator ' ' "$query"
   histdb-fzf-log "query completed"
 }
 
@@ -101,7 +101,7 @@ histdb-detail(){
   local where="(history.id == '$(sed -e "s/'/''/g" <<< "$2" | tr -d '\000')')"
 
   local cols="
-    history.id as id, 
+    history.id as id,
     commands.argv as argv,
     max(start_time) as max_start,
     exit_status,
@@ -109,19 +109,19 @@ histdb-detail(){
     count() as runcount,
     history.session as session,
     places.host as host,
-    places.dir as dir" 
+    places.dir as dir"
 
   local query="
-    select 
-      strftime('%d/%m/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time, 
-      ifnull(exit_status, 'NONE') as exit_status, 
-      ifnull(secs, '-----') as secs, 
-      ifnull(host, '<somewhere>') as host, 
+    select
+      strftime('%d/%m/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time,
+      ifnull(exit_status, 'NONE') as exit_status,
+      ifnull(secs, '-----') as secs,
+      ifnull(host, '<somewhere>') as host,
       ifnull(dir, '<somedir>') as dir,
-      session, 
+      session,
       id,
-      argv as cmd 
-    from 
+      argv as cmd
+    from
       (select ${cols}
       from
         history
@@ -153,7 +153,7 @@ histdb-detail(){
     # Duration yellow if > 1 min
     array[3]=$(echo "\033[33m${array[3]}\033[0m")
   fi
-  
+
   printf "\033[1mLast run\033[0m\n\nTime:      %s\nStatus:    %s\nDuration:  %s sec.\nHost:      %s\nDirectory: %s\nSessionid: %s\nCommand id: %s\nCommand:\n\n" ${array[0]}  ${array[1]}  ${array[2]}  ${array[3]} ${array[4]} ${array[5]} ${array[6]} ${array[7]}
   echo "${array[8,-1]}"
 }
@@ -163,15 +163,15 @@ histdb-get-command(){
   CMD_ID=$2
 
   local query="
-    select 
-      argv as cmd 
+    select
+      argv as cmd
     from
       history
       left join commands on history.command_id = commands.id
-    where 
+    where
       history.id='${CMD_ID}'
   "
-  printf "$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" "$query")"
+  printf "%s" "$(sqlite3 -cmd ".timeout 1000" "${HISTDB_FILE}" "$query")"
 }
 
 histdb-fzf-widget() {
@@ -205,7 +205,7 @@ histdb-fzf-widget() {
       histdb-fzf-log "mode changed to ${histdb_fzf_modes[$mode]} ($mode)"
     fi
     # based on the mode, we use the options for histdb options
-    case "$histdb_fzf_modes[$mode]" in 
+    case "$histdb_fzf_modes[$mode]" in
       'session')
         cmd_opts="-s"
         typ="Session local history ${fg[blue]}${HISTDB_SESSION}${reset_color}"
@@ -231,15 +231,15 @@ histdb-fzf-widget() {
     histdb-fzf-log "mode changed to ${histdb_fzf_modes[$mode]} ($mode)"
 
     # log the FZF arguments
-    OPTIONS="$ORIG_FZF_DEFAULT_OPTS 
-      --ansi 
+    OPTIONS="$ORIG_FZF_DEFAULT_OPTS
+      --ansi
       --header='${typ}${NL}${switchhints}${NL}―――――――――――――――――――――――――' --delimiter=' '
-      -n2.. --with-nth=2.. 
+      -n2.. --with-nth=2..
       --tiebreak=index --expect='esc,ctrl-r,f1,f2,f3,f4'
-      --bind 'ctrl-d:page-down,ctrl-u:page-up' 
-      --print-query 
-      --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap 
-      --no-hscroll 
+      --bind 'ctrl-d:page-down,ctrl-u:page-up'
+      --print-query
+      --preview='source ${FZF_HISTDB_FILE}; histdb-detail ${HISTDB_FILE} {1}' --preview-window=right:50%:wrap
+      --no-hscroll
       --query='${query}' +m"
 
     histdb-fzf-log "$OPTIONS"
