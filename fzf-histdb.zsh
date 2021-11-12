@@ -8,6 +8,16 @@ else
   datecmd='date'
 fi
 
+get_date_format() (
+    eval "$(locale)"
+    local lc_time_lang="$(awk -F'.' '{ print tolower($1) }' <<< "${LC_TIME}")"
+    if [[ "${lc_time_lang}" == "en_us" || "${lc_time_lang}" == "c" ]]; then
+        echo "%m/%d"
+    else
+        echo "%d/%m"
+    fi
+)
+
 # variables for substitution in log
 NL="
 "
@@ -54,6 +64,7 @@ histdb-fzf-query(){
 
   local cols="history.id as id, commands.argv as argv, max(start_time) as max_start, exit_status"
 
+  local date_format="$(get_date_format)"
   local mst="datetime(max_start, 'unixepoch')"
   local dst="datetime('now', 'start of day')"
   local yst="datetime('now', 'start of year')"
@@ -62,9 +73,9 @@ histdb-fzf-query(){
                       '%H:%M'
                    else (
                      case when $mst > $yst then
-                       '%d/%m'
+                       '${date_format}'
                      else
-                       '%d/%m/%Y'
+                       '${date_format}/%Y'
                      end)
                    end,
                    max_start,
@@ -100,6 +111,8 @@ histdb-detail(){
   HISTDB_FILE=$1
   local where="(history.id == '$(sed -e "s/'/''/g" <<< "$2" | tr -d '\000')')"
 
+  local date_format="$(get_date_format)"
+
   local cols="
     history.id as id,
     commands.argv as argv,
@@ -113,7 +126,7 @@ histdb-detail(){
 
   local query="
     select
-      strftime('%d/%m/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time,
+      strftime('${date_format}/%Y %H:%M', max_start, 'unixepoch', 'localtime') as time,
       ifnull(exit_status, 'NONE') as exit_status,
       ifnull(secs, '-----') as secs,
       ifnull(host, '<somewhere>') as host,
