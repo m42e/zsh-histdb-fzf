@@ -9,9 +9,21 @@ else
 fi
 
 get_date_format() (
-    eval "$(locale)"
-    local lc_time_lang="$(awk -F'.' '{ print tolower($1) }' <<< "${LC_TIME}")"
-    if [[ "${lc_time_lang}" == "en_us" || "${lc_time_lang}" == "c" ]]; then
+    local date_format
+
+    date_format="$(awk '{ print tolower($1) }' <<< "${FZF_HISTDB_FORCE_DATE_FORMAT}")"
+
+    if [[ "${date_format}" != "us" && "${date_format}" != "non-us" ]]; then
+        eval "$(locale)"
+        local lc_time_lang="$(awk -F'.' '{ print tolower($1) }' <<< "${LC_TIME}")"
+        if [[ "${lc_time_lang}" == "en_us" || "${lc_time_lang}" == "c" ]]; then
+            date_format="us"
+        else
+            date_format="non-us"
+        fi
+    fi
+
+    if [[ "${date_format}" == "us" ]]; then
         echo "%m/%d"
     else
         echo "%d/%m"

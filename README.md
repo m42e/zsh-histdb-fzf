@@ -8,17 +8,21 @@ See the example here:
 [![asciicast](https://asciinema.org/a/oRYb505aRW8exHWI6tzYPw0ww.svg)](https://asciinema.org/a/oRYb505aRW8exHWI6tzYPw0ww)
 
 
-At the moment there is no configuration, besides changing the code.
-
-
 Activation
-----------  
+----------
 
 To enable the widget add the following binding to you zshrc
 
 ```zsh
 bindkey '^R' histdb-fzf-widget
 ```
+
+Configuration
+-------------
+
+- Date format: By default, the date format (`us` or `non-us`) is auto-detected based on your current locale settings
+  (see `LC_TIME`). You can override this by setting the environment variable `FZF_HISTDB_FORCE_DATE_FORMAT` to either
+  `us` or `non-us`.
 
 Logging
 -------
