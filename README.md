@@ -21,7 +21,7 @@ Configuration
 -------------
 
 - Date format: By default, the date format (`us` or `non-us`) is auto-detected based on your current locale settings
-  (see `LC_TIME`). You can override this by setting the environment variable `FZF_HISTDB_FORCE_DATE_FORMAT` to either
+  (see `LC_TIME`). You can override this by setting the environment variable `HISTDB_FZF_FORCE_DATE_FORMAT` to either
   `us` or `non-us`.
 
 Logging
