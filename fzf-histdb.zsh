@@ -11,7 +11,7 @@ fi
 get_date_format() (
     local date_format
 
-    date_format="$(awk '{ print tolower($1) }' <<< "${FZF_HISTDB_FORCE_DATE_FORMAT}")"
+    date_format="$(awk '{ print tolower($1) }' <<< "${HISTDB_FZF_FORCE_DATE_FORMAT}")"
 
     if [[ "${date_format}" != "us" && "${date_format}" != "non-us" ]]; then
         eval "$(locale)"
