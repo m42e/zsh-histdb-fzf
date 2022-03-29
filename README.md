@@ -1,3 +1,5 @@
+**NB:** If you like this, you might want to have an implementation with a better performance: [zsh-histdb-skim](https://github.com/m42e/zsh-histdb-skim)
+
 zsh-histdb-fzf
 ==============
 
